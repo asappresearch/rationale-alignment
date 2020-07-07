@@ -1,5 +1,5 @@
 # Rationale-alignment
-Pytorch Library for Area Under the Margin (AUM) Ranking, as proposed in the paper:
+Pytorch Library for ACL 2020 paper:
 [Rationalizing Text Matching:Learning Sparse Alignments via Optimal Transport](https://arxiv.org/pdf/2005.13111.pdf)
 
 ## Usage
