@@ -1,0 +1,14 @@
+fasttext
+matplotlib
+nltk
+numpy
+pandas
+scikit-learn
+sru
+pyyaml
+tensorboardX
+tensorflow
+git+https://github.com/kswanson-asapp/sinkhorn.git
+torch
+tqdm
+typed-argument-parser
