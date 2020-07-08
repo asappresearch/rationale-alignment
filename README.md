@@ -3,7 +3,7 @@ Pytorch Library for ACL 2020 paper:
 [Rationalizing Text Matching:Learning Sparse Alignments via Optimal Transport](https://arxiv.org/pdf/2005.13111.pdf)
 
 ## Usage
-Data[https://drive.google.com/file/d/160W0S7xwZ91z94Y3lA_PLjI5PjVyU9Qi/view?usp=sharing]: please down load data and unzip to `data` folder
+Data(https://drive.google.com/file/d/160W0S7xwZ91z94Y3lA_PLjI5PjVyU9Qi/view?usp=sharing): please down load data and unzip to `data` folder
 
 ## Replicate results from the paper
 
