@@ -4,6 +4,7 @@ Pytorch Library for ACL 2020 paper:
 
 ## Usage
 [Data](https://drive.google.com/file/d/160W0S7xwZ91z94Y3lA_PLjI5PjVyU9Qi/view?usp=sharing): please down load data and unzip to `data` folder
+Embedding: we use fasttext embedding [cc.en.300.bin](https://fasttext.cc/docs/en/crawl-vectors.html), please download and specify the `embedding_path` in `utils/parsing.py`
 
 ## Replicate results from the paper
 
