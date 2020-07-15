@@ -131,21 +131,6 @@ class AlignmentModel(nn.Module):
             shapes = list(zip(n_list, m_list))
             alignments = unpad_tensors(alignments, shapes)
 
-            # Compute bad alignments using negative cost
-            if self.args.good_and_bad_alignments:
-                negative_costs = [-cost for cost in costs]
-                bad_alignments = batch_sinkhorn_func(C_list=negative_costs)
-                bad_alignments = unpad_tensors(bad_alignments, shapes)
-                alignments = [
-                    torch.stack((good_alignment, bad_alignment), dim=0)
-                    for good_alignment, bad_alignment in zip(alignments, bad_alignments)
-                ]
-            if self.args.bad_alignments:
-                negative_costs = [-cost for cost in costs]
-                bad_alignments = batch_sinkhorn_func(C_list=negative_costs)
-                bad_alignments = unpad_tensors(bad_alignments, shapes)
-                alignments = bad_alignments
-
             costs = unpad_tensors(costs, shapes)
 
         # Re-normalize alignment probabilities to one

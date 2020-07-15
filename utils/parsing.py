@@ -29,7 +29,6 @@ class SharedArguments(Tap):
     checkpoint_path: Optional[str] = None  # Path to checkpoint .pt file to load
     gpu: int = 0  # Which gpu to use
     small_data: bool = False  # Whether to load only a small amount of data for debugging
-    debug: bool = False  # Whether to load only a small amount of data for debugging
     preds_dir: Optional[
         str
     ] = None  # Path to directory where predictions will be saved as a .pkl file
@@ -43,9 +42,7 @@ class SharedArguments(Tap):
     result_dir: str = ""
     cost_regulate: float = 0.0
     regu_type: str = "l1"
-    word_norm: bool = False
-    hidden_norm: bool = False
-    norm_type: str = "layer"  # [layer, group, instance, batch]
+
     embedder_pooling: str = "average"
     attention_heads: int = 4
     attention_units: int = 64
@@ -70,9 +67,6 @@ class SharedArguments(Tap):
     error_check_frequency: int = 10
     error_threshold: float = 1e-6
 
-    good_and_bad_alignments: bool = False  # Whether to find bad alignments (i.e. using -cost) in addition to good alignments
-    bad_alignments: bool = False  # of
-    alignment_granunarity: str = "sentence"  # whatc
     word_to_word: bool = False  # if to align
     train_rationale: bool = False
     rationale_weight: float = 1.0
@@ -86,7 +80,6 @@ class SharedArguments(Tap):
     aggregate_l: int = 1  # number of layer for aggregate feedforward in decomposable attention model
     ffn_hidden_size: int = 300  # hiddensize in decomposable attention model
     attend_activation: str = "relu"
-    shiftcost: float = 0.0
     # ffn_dropout: float = 0.2  # dropout in decomposable attention model
     stop_cls_step: int = 10000  # at some epoch stop training classifer
 
@@ -110,7 +103,6 @@ class SharedArguments(Tap):
     # Bert
     bert: bool = False  # if use bert as encoder
     bert_type: str = "roberta-base"  # which pretrained model to use
-    n_bertlayer: int = 0
     gradient_accumulation_steps: int = 1
     warmup_steps: int = 100  # leanrnig rate decay method
     warmup_ratio: float = 0.06
@@ -202,7 +194,6 @@ class SharedArguments(Tap):
             or self.split_dummy
             or self.order_lambda != 0.0
         )
-        #    or self.good_and_bad_alignments
 
         if special_sinkhorn:
             assert self.alignment == "sinkhorn"
@@ -283,17 +274,18 @@ class MultiNewsArguments(SharedArguments):
 class SNLIArguments(SharedArguments):
     task: str = "classify"
     loss_fn: str = "cross_entropy"
+    batch_size: int = 400
 
     # Data arguments
     snli_path: str = "data/classify/esnli/docs.jsonl"  # Path to .txt file containing articles
     word_to_word: bool = True
     bert = False
-    # good_and_bad_alignments: bool = True
 
 
 class MultircArguments(SharedArguments):
     task: str = "classify"
     loss_fn: str = "cross_entropy"
+    batch_size: int = 200
 
     # Data arguments
     multirc_path: str = "data/classify/multirc"  # Path to .txt file containing articles

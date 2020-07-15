@@ -87,9 +87,6 @@ class Embedder(nn.Module):
                     highway_bias=self.highway_bias,
                 )
 
-        # if args.word_norm:
-        #     self.wordnorm = nn.InstanceNorm1d(self.embedding_size, affine=True)
-
         # if args.hidden_norm:
         #     self.hiddennorm = nn.InstanceNorm1d(self.emb_size, affine=True)
         self.output_size = self.emb_size
@@ -131,10 +128,6 @@ class Embedder(nn.Module):
         embedded = self.embdrop(
             self.embedding(data)
         )  # seq_len x batch_size x embedding_size
-
-        if self.args.word_norm:
-            embedded = F.layer_norm(embedded, embedded.size()[-2:])
-            # embedded = self.wordnorm(embedded)
 
         # RNN encoder
         h_seq, _ = self.encoder(

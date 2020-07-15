@@ -52,13 +52,8 @@ class SNLIDataLoader(DataLoader):
                 + list(test_id_mapping.keys())
                 + list(test_id_mapping.values())
             )
-            if args.debug:
-                id_to_text = {
-                    k: " ".join(["test text"] * random.randint(2, 10)) for k in allids
-                }
-            else:
-                id_to_text = self.load_text(args.snli_path)
-                id_to_text = {k: v for k, v in id_to_text.items() if k in allids}
+            id_to_text = self.load_text(args.snli_path)
+            id_to_text = {k: v for k, v in id_to_text.items() if k in allids}
         else:
             id_to_text = self.load_text(args.snli_path)
 

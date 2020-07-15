@@ -168,7 +168,6 @@ class AlignmentModel(nn.Module):
         batch_cost = compute_cost(
             cost_fn=self.args.cost_fn, x1=rows, x2=columns, batch=True
         )
-        batch_cost += self.args.shiftcost
 
         if self.args.alignment == "sinkhorn":
             costs = [
