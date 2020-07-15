@@ -6,9 +6,8 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import ExponentialLR
 
 
-from rationale_alignment.parsing import Arguments, parse_args
-from rationale_alignment.utils import load_weights, makedirs, make_schedular, NoamLR
-
+from utils.parsing import Arguments, parse_args
+from utils.utils import load_weights, makedirs, make_schedular, NoamLR
 
 
 def train(args: Arguments) -> None:
@@ -41,10 +40,7 @@ def train(args: Arguments) -> None:
 
     print("Building model")
     model = AlignmentModel(
-        args=args,
-        text_field=text_field,
-        domain=args.dataset,
-        device=device,
+        args=args, text_field=text_field, domain=args.dataset, device=device,
     )
 
     saved_step = 0
@@ -173,7 +169,7 @@ def train(args: Arguments) -> None:
 if __name__ == "__main__":
     import sys
 
-    from rationale_alignment.utils import Logger
+    from utils.utils import Logger
 
     # Parse args
     args = parse_args()

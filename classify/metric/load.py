@@ -4,7 +4,7 @@ from classify.metric import Metric
 from classify.metric.dev import *
 from classify.metric.loss import *
 from classify.metric.train import *
-from rationale_alignment.parsing import Arguments
+from utils.parsing import Arguments
 
 
 def load_loss(args):
@@ -39,7 +39,7 @@ def load_loss_and_metrics(
     """
     # Loss
     loss_fn = load_loss(args)
-    if args.dataset in ["snli", "eraser"]:
+    if args.dataset in ["snli", "multirc"]:
         metric_fn = F1()
         extra_validation_metrics = [Accuracy()]
         extra_training_metrics = [Accuracy()]

@@ -8,7 +8,7 @@ from similarity.data.loaders import (
 )
 from similarity.data.sampler import Sampler
 from similarity.data.text import TextField
-from rationale_alignment.parsing import Arguments
+from utils.parsing import Arguments
 
 
 def load_data(

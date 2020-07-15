@@ -9,10 +9,10 @@ import torch
 # )
 # from classify.data.loaders import PubmedDataLoader, PubmedSummaryDataLoader
 from classify.data.loaders.snli import SNLIDataLoader
-from classify.data.loaders.eraser import EraserDataLoader
+from classify.data.loaders.multirc import MultircDataLoader
 
 from classify.data.text import TextField
-from rationale_alignment.parsing import Arguments
+from utils.parsing import Arguments
 from classify.data.sampler import Sampler
 
 
@@ -29,14 +29,14 @@ def load_data(
         from classify.data.snli_sampler import SNLISampler as Sampler
 
         data_loader = SNLIDataLoader(args)
-    elif args.dataset == "eraser" and args.word_to_word:
-        from classify.data.eraser_word_sampler import EraserWSampler as Sampler
+    # elif args.dataset == "multirc" and args.word_to_word:
+    #     from classify.data.multirc_word_sampler import MultircWSampler as Sampler
 
-        data_loader = EraserDataLoader(args)
-    elif args.dataset == "eraser":
-        from classify.data.eraser_sent_sampler import EraserSentSampler as Sampler
+    #     data_loader = MultircDataLoader(args)
+    elif args.dataset == "multirc":
+        from classify.data.multirc_sent_sampler import MultircSentSampler as Sampler
 
-        data_loader = EraserDataLoader(args)
+        data_loader = MultircDataLoader(args)
     else:
         raise ValueError(f'Dataset "{args.dataset}" not supported')
 

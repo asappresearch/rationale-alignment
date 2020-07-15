@@ -4,7 +4,7 @@ from sinkhorn import compute_alignment_cost, compute_entropy
 import torch
 import numpy as np
 from classify.metric.abstract import AlignmentAverageMetric
-from rationale_alignment.utils import prod
+from utils.utils import prod
 from sklearn.metrics import f1_score, precision_score, recall_score
 
 

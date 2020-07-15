@@ -9,7 +9,7 @@ from similarity.data.dataset import Dataset
 from similarity.data.loaders.loader import DataLoader
 from similarity.data.text import TextField
 from similarity.data.utils import split_data, text_to_sentences
-from rationale_alignment.parsing import MultiNewsArguments
+from utils.parsing import MultiNewsArguments
 
 
 class MultiNewsDataLoader(DataLoader):

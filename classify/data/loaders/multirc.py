@@ -8,9 +8,9 @@ import torch
 
 from classify.data.dataset import Dataset
 from classify.data.loaders.loader import DataLoader
-from rationale_alignment.parsing import EraserArguments
+from utils.parsing import MultircArguments
 from classify.data.text import TextField
-from classify.data.berttokenizer import BTTokenizer
+from utils.berttokenizer import BTTokenizer
 from classify.data.utils import split_data, text_to_sentences
 
 import jsonlines
@@ -18,25 +18,25 @@ from collections import defaultdict
 import random
 
 
-class EraserDataLoader(DataLoader):
-    def __init__(self, args: EraserArguments):
+class MultircDataLoader(DataLoader):
+    def __init__(self, args: MultircArguments):
         """Loads the pubmed dataset."""
 
         # Determine word to index mapping
         # self.small_data = args.small_data #dataset small enough
         self.args = args
-        id_to_document = self.load_text(args.eraser_path)
+        id_to_document = self.load_text(args.multirc_path)
         self.id_to_document = id_to_document
 
         # Load data
         train_label, train_evidences = self.load_label(
-            args.eraser_path, "train", args.small_data
+            args.multirc_path, "train", args.small_data
         )
         dev_label, dev_evidences = self.load_label(
-            args.eraser_path, "val", args.small_data
+            args.multirc_path, "val", args.small_data
         )
         test_label, test_evidences = self.load_label(
-            args.eraser_path, "test", args.small_data
+            args.multirc_path, "test", args.small_data
         )
 
         train_id_mapping = {idx: idx.split(":")[0] for idx in train_label.keys()}
@@ -55,7 +55,6 @@ class EraserDataLoader(DataLoader):
                 texts = [x for doc in list(id_to_document.values()) for x in doc]
             self._text_field = TextField()
             self._text_field.build_vocab(texts)
-
 
         sampled = {
             k: id_to_document[k] for k in random.sample(list(id_to_document.keys()), 10)

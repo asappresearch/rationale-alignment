@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 from typing import Tuple
 
-from rationale_alignment.parsing import Arguments
-from rationale_alignment.utils import compute_cost, prod
+from utils.parsing import Arguments
+from utils.utils import compute_cost, prod
 
 
 def load_attention_layer(args: Arguments, bidirectional: bool) -> nn.Module:
@@ -20,11 +20,8 @@ def load_attention_layer(args: Arguments, bidirectional: bool) -> nn.Module:
 def build_ffn(input_size: int, output_size: int, args: Arguments) -> nn.Module:
     """Builds a 2-layer feed-forward network."""
     return nn.Sequential(
-        nn.Linear(input_size, output_size),
-        nn.Dropout(args.dropout),
-        nn.LeakyReLU(0.2),
+        nn.Linear(input_size, output_size), nn.Dropout(args.dropout), nn.LeakyReLU(0.2),
     )
-
 
 
 class attention5(nn.Module):
@@ -36,7 +33,7 @@ class attention5(nn.Module):
         )
         if args.dataset == "snli":
             self.out = nn.Linear(2 * self.args.hidden_size, 3)
-        elif args.dataset == "eraser":
+        elif args.dataset == "multirc":
             self.out = nn.Linear(2 * self.args.hidden_size, 2)
         self.sparsemax = SparsemaxFunction.apply
 

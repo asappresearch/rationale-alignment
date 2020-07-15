@@ -11,7 +11,7 @@ from classify.data.dataset import Dataset
 import numpy as np
 
 
-class EraserSentSampler:
+class MultircSentSampler:
     def __init__(
         self,
         data: Dataset,

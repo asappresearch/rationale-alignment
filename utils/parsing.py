@@ -5,7 +5,7 @@ from typing import List, Optional, Union
 
 from tap import Tap
 
-from rationale_alignment.utils import create_exp_name, find_unique_name, makedirs
+from utils.utils import create_exp_name, find_unique_name, makedirs
 
 TEMP_DIR = None
 
@@ -16,16 +16,7 @@ class DatasetArguments(Tap):
     def add_arguments(self) -> None:
         self.add_argument(
             "--dataset",
-            choices=[
-                "askubuntu",
-                "superuser_askubuntu",
-                "summary",
-                "multinews",
-                "pubmed",
-                "pubmedsummary",
-                "snli",
-                "eraser",
-            ],
+            choices=["superuser_askubuntu", "multinews", "snli", "multirc",],
         )
 
 
@@ -163,8 +154,7 @@ class SharedArguments(Tap):
             ],
         )
         self.add_argument(
-            "--alignment",
-            choices=["average", "all_pairs", "attention", "sinkhorn", "align_atten"],
+            "--alignment", choices=["average", "all_pairs", "attention", "sinkhorn"],
         )
         self.add_argument(
             "--hinge_pooling", choices=["max", "average", "smoothmax", "none"]
@@ -215,7 +205,7 @@ class SharedArguments(Tap):
         #    or self.good_and_bad_alignments
 
         if special_sinkhorn:
-            assert self.alignment == "sinkhorn" or self.alignment == "align_atten"
+            assert self.alignment == "sinkhorn"
 
         assert (
             self.max_num_aligned is None or self.one_to_k is None
@@ -248,11 +238,13 @@ class SharedArguments(Tap):
 class AskUbuntuArguments(SharedArguments):
     """https://github.com/taolei87/askubuntu (viewed 09/05/2019)"""
 
+    task: str = "similarity"
+
     # Data arguments
-    text_path: str = "../data/askubuntu/text_tokenized.txt"  # Path to .txt file contining the tokenized text
-    train_path: str = "../data/askubuntu/train_random.txt"  # Path to .txt file containing the train similar/dissimilar IDs
-    dev_path: str = "../data/askubuntu/dev.txt"  # Path to .txt file containing the dev similar/dissimilar IDs
-    test_path: str = "../data/askubuntu/test.txt"  # Path to .txt file containing the test similar/dissimilar IDs
+    text_path: str = "data/similarity/askubuntu/text_tokenized.txt"  # Path to .txt file contining the tokenized text
+    train_path: str = "data/similarity/askubuntu/train_random.txt"  # Path to .txt file containing the train similar/dissimilar IDs
+    dev_path: str = "data/similarity/askubuntu/dev.txt"  # Path to .txt file containing the dev similar/dissimilar IDs
+    test_path: str = "data/similarity/askubuntu/test.txt"  # Path to .txt file containing the test similar/dissimilar IDs
 
     # Training arguments
     title_only: bool = False  # Whether to only use the title and not the body text
@@ -262,9 +254,11 @@ class AskUbuntuArguments(SharedArguments):
 class SuperUserAskUbuntuArguments(AskUbuntuArguments):
     """https://archive.org/details/stackexchange June 2019 dump"""
 
+    task: str = "similarity"
+
     # Data arguments
-    text_path: str = "../data/superuser_askubuntu/text_tokenized.txt"
-    train_path: str = "../data/superuser_askubuntu/similar_pairs.txt"
+    text_path: str = "data/similarity/superuser_askubuntu/text_tokenized.txt"
+    train_path: str = "data/similarity/superuser_askubuntu/similar_pairs.txt"
     dev_path: str = None
     test_path: str = None
 
@@ -272,102 +266,55 @@ class SuperUserAskUbuntuArguments(AskUbuntuArguments):
     num_eval_negatives: int = 20
 
 
-class SummaryArguments(SharedArguments):
-    """Spear summary data from 06/11/2019"""
-
-    # Data arguments
-    summary_path: str = "../data/spear_summary_20190611/summaries.txt"  # Path to conversation summaries .txt file
-    conversation_path: str = "../data/spear_summary_20190611/contexts.txt"  # Path to conversations .txt file
-
-    # Training arguments
-    num_negatives: int = 10
-    num_eval_negatives: int = 10
-
-
 class MultiNewsArguments(SharedArguments):
     """https://github.com/Alex-Fabbri/Multi-News (viewed 09/05/2019)"""
 
+    task = "similarity"
+
     # Data arguments
-    news_path: str = "../data/multi-news-original/train.src"  # Path to .txt file containing articles
+    news_path: str = "data/similarity/multi-news-original/train.src"  # Path to .txt file containing articles
 
     # Training arguments
     batch_size: int = 10
     num_negatives: int = 10
     num_eval_negatives: int = 10
-
-
-class PubmedArguments(SharedArguments):
-    """https://github.com/Alex-Fabbri/Multi-News (viewed 09/05/2019)"""
-
-    # Data arguments
-    pubmed_path: str = "../data/pubmeddata_withphrase.json"  # Path to .txt file containing articles
-    usetagger: bool = False
-
-    # Training arguments
-    batch_size: int = 10
-    num_negatives: int = 10
-    num_eval_negatives: int = 10
-
-    def add_arguments(self) -> None:
-        self.add_argument("--left_tokenizer", choices=["word", "sentence", "phrase"])
-        self.add_argument("--right_tokenizer", choices=["word", "sentence", "phrase"])
 
 
 class SNLIArguments(SharedArguments):
-    """https://github.com/Alex-Fabbri/Multi-News (viewed 09/05/2019)"""
+    task: str = "classify"
+    loss_fn: str = "cross_entropy"
 
     # Data arguments
-    snli_path: str = "../data/esnli/docs.jsonl"  # Path to .txt file containing articles
-    loss_fn: str = "cross_entropy"
+    snli_path: str = "data/classify/esnli/docs.jsonl"  # Path to .txt file containing articles
     word_to_word: bool = True
-    good_and_bad_alignments: bool = True
-
-
-class EraserArguments(SharedArguments):
-    """https://github.com/Alex-Fabbri/Multi-News (viewed 09/05/2019)"""
-
-    # Data arguments
-    eraser_path: str = "../data/eraser/multirc"  # Path to .txt file containing articles
-    loss_fn: str = "cross_entropy"
-
-    """
-    Two way to organize the data and task.
-        1. As an annotation task and organized by annotation ID. good for most eraser task 
-        2. Pos, negtive hinge loss stask, for multirc, organized by docuemnt, positive q|a pair as similar document, negtive ones as dissimilar
-    """
-
-    # word_to_word: bool = True
+    bert = False
     # good_and_bad_alignments: bool = True
 
 
+class MultircArguments(SharedArguments):
+    task: str = "classify"
+    loss_fn: str = "cross_entropy"
+
+    # Data arguments
+    multirc_path: str = "data/classify/multirc"  # Path to .txt file containing articles
+
+
 Arguments = Union[
-    AskUbuntuArguments,
-    SummaryArguments,
-    SummaryArguments,
-    MultiNewsArguments,
-    PubmedArguments,
-    SNLIArguments,
-    EraserArguments,
+    AskUbuntuArguments, MultiNewsArguments, SNLIArguments, MultircArguments,
 ]
 
 
 def parse_dataset_args(
     dataset: str, extra_args: Optional[List[str]] = None
 ) -> Arguments:
-    if dataset == "askubuntu":
-        return AskUbuntuArguments().parse_args(args=extra_args)
-    elif dataset == "superuser_askubuntu":
+    if dataset == "superuser_askubuntu":
         return SuperUserAskUbuntuArguments().parse_args(args=extra_args)
-    elif dataset == "summary":
-        return SummaryArguments().parse_args(args=extra_args)
     elif dataset == "multinews":
         return MultiNewsArguments().parse_args(args=extra_args)
-    elif dataset in ["pubmed", "pubmedsummary"]:
-        return PubmedArguments().parse_args(args=extra_args)
     elif dataset == "snli":
         return SNLIArguments().parse_args(args=extra_args)
-    elif dataset == "eraser":
-        return EraserArguments().parse_args(args=extra_args)
+    elif dataset == "multirc":
+        return MultircArguments().parse_args(args=extra_args)
 
     raise ValueError(f'Dataset "{dataset}" not supported')
 

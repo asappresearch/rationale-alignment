@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple
 import torch
 
 from similarity.metric.abstract import AlignmentMetric
-from rationale_alignment.utils import prod
+from utils.utils import prod
 
 
 class HingeLoss(AlignmentMetric):

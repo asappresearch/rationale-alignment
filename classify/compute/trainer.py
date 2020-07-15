@@ -13,7 +13,7 @@ from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 
 from classify.data import Sampler
 from classify.metric import Metric
-from rationale_alignment.utils import prod, save_model, NoamLR
+from utils.utils import prod, save_model, NoamLR
 from classify.metric.dev.rationacc import compute_raionale_metrics
 from classify.metric.loss.regularizor import ReguCost
 from classify.metric.loss.rationaleloss import RationaleBCELoss
@@ -125,10 +125,7 @@ class AlignmentTrainer:
 
                 loss = 0
                 if self._step < self.args.stop_cls_step:
-                    if self.model.domain in ["snli", "eraser"]:
-                        loss += self.loss_fn(logits, targets)
-                    else:
-                        loss += self.loss_fn(preds, targets, self._step)
+                    loss += self.loss_fn(logits, targets)
 
                 if self.args.cost_regulate:
                     loss += self.regu_fn(preds, targets, self._step)
@@ -173,64 +170,51 @@ class AlignmentTrainer:
                             self._examples,
                         )
 
-                    if self.model.domain in ["snli", "eraser"]:
+                    self.log(
+                        f"Train/Metric/{self.metric_fn}",
+                        self.metric_fn(logits, targets).item(),
+                        self._examples,
+                    )
+
+                    (
+                        premise_p,
+                        premise_r,
+                        premise_f1,
+                        hypothesis_p,
+                        hypothesis_r,
+                        hypothesis_f1,
+                        p,
+                        r,
+                        f,
+                        r_ratio,
+                    ) = compute_raionale_metrics(preds, targets)
+                    self.log(f"Train/Metric/rationale_ratio", r_ratio, self._examples)
+                    self.log(f"Train/Metric/precision", p, self._examples)
+                    self.log(f"Train/Metric/recall", r, self._examples)
+                    self.log(f"Train/Metric/rationalef1", f, self._examples)
+                    if self.model.domain == "snli":
                         self.log(
-                            f"Train/Metric/{self.metric_fn}",
-                            self.metric_fn(logits, targets).item(),
+                            f"Train/Metric/premise_precision",
+                            premise_p,
                             self._examples,
                         )
-
-                        (
-                            premise_p,
-                            premise_r,
-                            premise_f1,
-                            hypothesis_p,
-                            hypothesis_r,
-                            hypothesis_f1,
-                            p,
-                            r,
-                            f,
-                            r_ratio,
-                        ) = compute_raionale_metrics(preds, targets)
                         self.log(
-                            f"Train/Metric/rationale_ratio", r_ratio, self._examples
+                            f"Train/Metric/premise_recall", premise_r, self._examples,
                         )
-                        self.log(f"Train/Metric/precision", p, self._examples)
-                        self.log(f"Train/Metric/recall", r, self._examples)
-                        self.log(f"Train/Metric/rationalef1", f, self._examples)
-                        if self.model.domain == "snli":
-                            self.log(
-                                f"Train/Metric/premise_precision",
-                                premise_p,
-                                self._examples,
-                            )
-                            self.log(
-                                f"Train/Metric/premise_recall",
-                                premise_r,
-                                self._examples,
-                            )
-                            self.log(
-                                f"Train/Metric/premise_f1", premise_f1, self._examples
-                            )
-                            self.log(
-                                f"Train/Metric/hypothesis_precision",
-                                hypothesis_p,
-                                self._examples,
-                            )
-                            self.log(
-                                f"Train/Metric/hypothesis_recall",
-                                hypothesis_r,
-                                self._examples,
-                            )
-                            self.log(
-                                f"Train/Metric/hypothesis_f1",
-                                hypothesis_f1,
-                                self._examples,
-                            )
-                    else:
+                        self.log(f"Train/Metric/premise_f1", premise_f1, self._examples)
                         self.log(
-                            f"Train/Metric/{self.metric_fn}",
-                            self.metric_fn(preds, targets).item(),
+                            f"Train/Metric/hypothesis_precision",
+                            hypothesis_p,
+                            self._examples,
+                        )
+                        self.log(
+                            f"Train/Metric/hypothesis_recall",
+                            hypothesis_r,
+                            self._examples,
+                        )
+                        self.log(
+                            f"Train/Metric/hypothesis_f1",
+                            hypothesis_f1,
                             self._examples,
                         )
 
@@ -305,8 +289,7 @@ class AlignmentTrainer:
                     preds, targets, logits = self.model(
                         *batch, threshold=scaling, epsilon=self.epsilon
                     )
-                    if self.model.domain in ["snli", "eraser"]:
-                        all_logits.append(logits)
+                    all_logits.append(logits)
                     preds, targets, num_preds = self.postprocess(
                         preds, targets, num_preds
                     )
@@ -314,79 +297,68 @@ class AlignmentTrainer:
                     all_targets += targets
 
                 # Log metrics
-                if self.model.domain in ["snli", "eraser"]:
-                    all_logits = torch.cat(all_logits, dim=0).cpu()
-                    dev_loss = self.dev_loss_fn(
-                        all_logits, all_targets
-                    ).item()  # only report the loss of max_hinge_loss
-                    if self.args.train_rationale:
-                        rationale_loss = self.rationale_loss(all_preds, all_targets)
+                all_logits = torch.cat(all_logits, dim=0).cpu()
+                dev_loss = self.dev_loss_fn(
+                    all_logits, all_targets
+                ).item()  # only report the loss of max_hinge_loss
+                if self.args.train_rationale:
+                    rationale_loss = self.rationale_loss(all_preds, all_targets)
 
-                    dev_metric = self.metric_fn(all_logits, all_targets).item()
+                dev_metric = self.metric_fn(all_logits, all_targets).item()
+                check_dev_metric = dev_metric
+
+                check_dev = (
+                    scaling == 0.1
+                )  # and self.model.alignment=='attention') or ((scaling==0.1) and self.model.alignment=='attention')
+                if check_dev:
                     check_dev_metric = dev_metric
-
-                    check_dev = (
-                        scaling == 0.1
-                    )  # and self.model.alignment=='attention') or ((scaling==0.1) and self.model.alignment=='attention')
-                    if check_dev:
-                        check_dev_metric = dev_metric
-                    (
-                        premise_p,
-                        premise_r,
-                        premise_f1,
-                        hypothesis_p,
-                        hypothesis_r,
-                        hypothesis_f1,
-                        p,
-                        r,
-                        f,
-                        r_ratio,
-                    ) = compute_raionale_metrics(all_preds, all_targets, scaling)
+                (
+                    premise_p,
+                    premise_r,
+                    premise_f1,
+                    hypothesis_p,
+                    hypothesis_r,
+                    hypothesis_f1,
+                    p,
+                    r,
+                    f,
+                    r_ratio,
+                ) = compute_raionale_metrics(all_preds, all_targets, scaling)
+                self.log(
+                    f"{flavor}_{scaling}/Metric/rationale_ratio", r_ratio, self._step,
+                )
+                self.log(f"{flavor}_{scaling}/Metric/precision", p, self._step)
+                self.log(f"{flavor}_{scaling}/Metric/recall", r, self._step)
+                self.log(f"{flavor}_{scaling}/Metric/rationalef1", f, self._step)
+                if self.model.domain == "snli":
                     self.log(
-                        f"{flavor}_{scaling}/Metric/rationale_ratio",
-                        r_ratio,
+                        f"{flavor}_{scaling}/Metric/premise_precision",
+                        premise_p,
                         self._step,
                     )
-                    self.log(f"{flavor}_{scaling}/Metric/precision", p, self._step)
-                    self.log(f"{flavor}_{scaling}/Metric/recall", r, self._step)
-                    self.log(f"{flavor}_{scaling}/Metric/rationalef1", f, self._step)
-                    if self.model.domain == "snli":
-                        self.log(
-                            f"{flavor}_{scaling}/Metric/premise_precision",
-                            premise_p,
-                            self._step,
-                        )
-                        self.log(
-                            f"{flavor}_{scaling}/Metric/premise_recall",
-                            premise_r,
-                            self._step,
-                        )
-                        self.log(
-                            f"{flavor}_{scaling}/Metric/premise_f1",
-                            premise_f1,
-                            self._step,
-                        )
-                        self.log(
-                            f"{flavor}_{scaling}/Metric/hypothesis_precision",
-                            hypothesis_p,
-                            self._step,
-                        )
-                        self.log(
-                            f"{flavor}_{scaling}/Metric/hypothesis_recall",
-                            hypothesis_r,
-                            self._step,
-                        )
-                        self.log(
-                            f"{flavor}_{scaling}/Metric/hypothesis_f1",
-                            hypothesis_f1,
-                            self._step,
-                        )
-                else:
-                    dev_loss = self.dev_loss_fn(
-                        all_preds, all_targets, 10
-                    ).item()  # only report the loss of max_hinge_loss
-                    dev_metric = self.metric_fn(all_preds, all_targets).item()
-                    check_dev_metric = dev_metric
+                    self.log(
+                        f"{flavor}_{scaling}/Metric/premise_recall",
+                        premise_r,
+                        self._step,
+                    )
+                    self.log(
+                        f"{flavor}_{scaling}/Metric/premise_f1", premise_f1, self._step,
+                    )
+                    self.log(
+                        f"{flavor}_{scaling}/Metric/hypothesis_precision",
+                        hypothesis_p,
+                        self._step,
+                    )
+                    self.log(
+                        f"{flavor}_{scaling}/Metric/hypothesis_recall",
+                        hypothesis_r,
+                        self._step,
+                    )
+                    self.log(
+                        f"{flavor}_{scaling}/Metric/hypothesis_f1",
+                        hypothesis_f1,
+                        self._step,
+                    )
 
                 # Log metrics
                 # self.log('Stats/Learning_Rate', self.scheduler.get_lr()[0], self._step)
@@ -455,8 +427,8 @@ class AlignmentTrainer:
                     preds, targets, logits = self.model(
                         *batch, threshold=scaling, epsilon=self.epsilon
                     )
-                    if self.model.domain in ["snli", "eraser"]:
-                        all_logits.append(logits)
+
+                    all_logits.append(logits)
                     preds, targets, num_preds = self.postprocess(
                         preds, targets, num_preds
                     )
@@ -464,41 +436,37 @@ class AlignmentTrainer:
                     all_targets += targets
 
                 # Log metrics
-                if self.model.domain in ["snli", "eraser"]:
-                    all_logits = torch.cat(all_logits, dim=0).cpu()
-                    dev_loss = self.dev_loss_fn(
-                        all_logits, all_targets
-                    ).item()  # only report the loss of max_hinge_loss
-                    dev_metric = self.metric_fn(all_logits, all_targets).item()
+                all_logits = torch.cat(all_logits, dim=0).cpu()
+                dev_loss = self.dev_loss_fn(
+                    all_logits, all_targets
+                ).item()  # only report the loss of max_hinge_loss
+                dev_metric = self.metric_fn(all_logits, all_targets).item()
 
-                    (
-                        premise_p,
-                        premise_r,
-                        premise_f1,
-                        hypothesis_p,
-                        hypothesis_r,
-                        hypothesis_f1,
-                        p,
-                        r,
-                        f,
-                        r_ratio,
-                    ) = compute_raionale_metrics(all_preds, all_targets, scaling)
+                (
+                    premise_p,
+                    premise_r,
+                    premise_f1,
+                    hypothesis_p,
+                    hypothesis_r,
+                    hypothesis_f1,
+                    p,
+                    r,
+                    f,
+                    r_ratio,
+                ) = compute_raionale_metrics(all_preds, all_targets, scaling)
 
-                    self.log(f"{flavor}/Metric/rationale_ratio", r_ratio, i)
-                    self.log(f"{flavor}/Metric/precision", p, i)
-                    self.log(f"{flavor}/Metric/recall", r, i)
-                    self.log(f"{flavor}/Metric/rationalef1", f, i)
-                    self.log(f"{flavor}/Metric/tradeoff", p, r)
-                    if self.model.domain == "snli":
-                        self.log(f"{flavor}/Metric/premise_precision", premise_p, i)
-                        self.log(f"{flavor}/Metric/premise_recall", premise_r, i)
-                        self.log(f"{flavor}/Metric/premise_f1", premise_f1, i)
-                        self.log(
-                            f"{flavor}/Metric/hypothesis_precision", hypothesis_p, i
-                        )
-                        self.log(f"{flavor}/Metric/hypothesis_recall", hypothesis_r, i)
-                        self.log(f"{flavor}/Metric/hypothesis_f1", hypothesis_f1, i)
-                else:
+                self.log(f"{flavor}/Metric/rationale_ratio", r_ratio, i)
+                self.log(f"{flavor}/Metric/precision", p, i)
+                self.log(f"{flavor}/Metric/recall", r, i)
+                self.log(f"{flavor}/Metric/rationalef1", f, i)
+                self.log(f"{flavor}/Metric/tradeoff", p, r)
+                if self.model.domain == "snli":
+                    self.log(f"{flavor}/Metric/premise_precision", premise_p, i)
+                    self.log(f"{flavor}/Metric/premise_recall", premise_r, i)
+                    self.log(f"{flavor}/Metric/premise_f1", premise_f1, i)
+                    self.log(f"{flavor}/Metric/hypothesis_precision", hypothesis_p, i)
+                    self.log(f"{flavor}/Metric/hypothesis_recall", hypothesis_r, i)
+                    self.log(f"{flavor}/Metric/hypothesis_f1", hypothesis_f1, i)
                     dev_loss = self.dev_loss_fn(
                         all_preds, all_targets, 10
                     ).item()  # only report the loss of max_hinge_loss

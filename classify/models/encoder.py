@@ -8,8 +8,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rationale_alignment.parsing import Arguments
-from rationale_alignment.utils import compute_cost, prod, unpad_tensors
+from utils.parsing import Arguments
+from utils.utils import compute_cost, prod, unpad_tensors
 from classify.models.attention import load_attention_layer
 from classify.models.pooling_attention import (
     SelfAttentionPooling,

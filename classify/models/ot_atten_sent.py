@@ -8,8 +8,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rationale_alignment.parsing import Arguments
-from rationale_alignment.utils import compute_cost, prod, unpad_tensors, feed_forward
+from utils.parsing import Arguments
+from utils.utils import compute_cost, prod, unpad_tensors, feed_forward
 from classify.models.attention import load_attention_layer, SparsemaxFunction
 from classify.models.encoder import Embedder
 
@@ -77,7 +77,7 @@ class AlignmentModel(nn.Module):
         if self.domain == "snli":
             self.out = nn.Linear(cls_input, 3)
             self.word_to_word = True
-        if self.domain == "eraser":
+        if self.domain == "multirc":
             self.out = nn.Linear(cls_input, 2)
 
         # This is a special model for SNLI, where the logits is (pos_cost, neg_cost, bias)
@@ -99,7 +99,6 @@ class AlignmentModel(nn.Module):
     ) -> Tuple[List[Tuple[torch.FloatTensor, torch.FloatTensor]], List[Any]]:
         """
         Aligns document pairs.
-
         :param data: Sentences represented as LongTensors of word indices.
         :param scope: A list of tuples of row_indices and column_indices indexing into data
         to extract the appropriate sentences for each document pair.
@@ -190,7 +189,7 @@ class AlignmentModel(nn.Module):
         )
         batch_cost += self.args.shiftcost
 
-        if self.args.alignment == "align_atten":
+        if self.args.alignment == "sinkhorn":
             costs = [
                 batch_cost[i, :n, :m] for i, (n, m) in enumerate(zip(n_list, m_list))
             ]
@@ -233,13 +232,27 @@ class AlignmentModel(nn.Module):
                         self.device
                     )
                 elif self.args.ratio_threshold:
+                    # new_alignments = []
+                    # for i in len(alignments):
+                    #     alignment = alignments[i]
+                    #     b =  alignment.reshape(-1)
+                    #     threshold_adjusted = b.sort()[0][int(b.shape[0]*threshold)-1]
+                    #     alignment = alignment * (alignment >= threshold_adjusted).float().to(self.device)
+                    #     new_alignments.append(alignment)
+                    # alignments = torch.stack(new_alignments)
 
                     b = alignments.reshape(-1)
                     threshold_adjusted = b.sort()[0][int(b.shape[0] * threshold) - 1]
+                    # valid_alignments = [alignments[i, :n, :m] for i, (n, m) in enumerate(zip(n_list, m_list))]
+                    # b =  torch.cat([align.reshape(-1) for align in valid_alignments])
+                    # threshold_adjusted = b.sort(descending=True)[0][int(b.shape[0]*threshold)-1]
                     alignments = alignments * (
                         alignments >= threshold_adjusted
                     ).float().to(self.device)
                 else:
+                    # print('relative')
+                    # mask = (torch.rand(row_alignments.size(0), row_alignments.size(1), row_alignments.size(2)) >= threshold ).float().to(self.device)
+                    # alignments = [alignment * (alignment >= threshold / prod(alignment.shape[-2:])).float() for alignment in alignments]
                     alignment_masks = (
                         torch.stack(
                             [
@@ -291,6 +304,9 @@ class AlignmentModel(nn.Module):
                 elif self.args.ratio_threshold:
                     b = row_alignments.reshape(-1)
                     threshold_adjusted_r = b.sort()[0][int(b.shape[0] * threshold) - 1]
+                    # valid_alignments_r = [row_alignments[i, :n, :m] for i, (n, m) in enumerate(zip(n_list, m_list))]
+                    # b =  torch.cat([align.reshape(-1) for align in valid_alignments_r])
+                    # threshold_adjusted_r = b.sort(descending=True)[0][int(b.shape[0]*threshold)-1]
                     alignment_masks_r = (
                         (row_alignments >= threshold_adjusted_r).float().to(self.device)
                     )
@@ -298,12 +314,18 @@ class AlignmentModel(nn.Module):
                     threshold_adjusted_c = bb.sort()[0][
                         int(bb.shape[0] * threshold) - 1
                     ]
+                    # valid_alignments_c = [column_alignments[i, :m, :n] for i, (n, m) in enumerate(zip(n_list, m_list))]
+                    # bb =  torch.cat([align.reshape(-1) for align in valid_alignments_c])
+                    # threshold_adjusted_c = bb.sort(descending=True)[0][int(bb.shape[0]*threshold)-1]
                     alignment_masks_c = (
                         (column_alignments >= threshold_adjusted_c)
                         .float()
                         .to(self.device)
                     )
                 else:
+                    # mask = (torch.rand(row_alignments.size(0), row_alignments.size(1), row_alignments.size(2)) >= threshold ).float().to(self.device)
+                    # threshold_alignments = [alignment * ( torch.rand(alignment.size(-2), alignment.size(-1)) >=0.5 ).float() for alignment in alignments]
+                    # print('relative')
                     alignment_masks_r = (
                         torch.stack(
                             [
@@ -344,6 +366,12 @@ class AlignmentModel(nn.Module):
             column_alignments = alignments.transpose(1, 2)
             row_alignments = alignments
 
+        # weighted sum
+        # alpha = alignments.unsqueeze(dim=3) * rows.unsqueeze(dim=2)   # (bs,n,m,1)*(bs,n,1,hideen)
+        # beta = alignments.unsqueeze(dim=3) * columns.unsqueeze(dim=1) # (bs,n,m,1)*(bs,1,m,hideen)
+        # alpha = torch.sum(alpha, dim=1)  # bs x m x hidden_size
+        # beta = torch.sum(beta, dim=2) # bs x n x hidden_size
+        # attention.bmm(matrix)
 
         # weighted sum
         attended_row = column_alignments.contiguous().bmm(
@@ -408,7 +436,7 @@ class AlignmentModel(nn.Module):
 
         # Re-normalize alignment probabilities to one
         if (
-            self.args.alignment in ["attention", "sinkhorn", "align_atten"]
+            self.args.alignment in ["attention", "sinkhorn"]
             and not self.args.optional_alignment
         ):
             alignments = [

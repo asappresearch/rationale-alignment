@@ -8,9 +8,9 @@ from tqdm import tqdm
 
 from similarity.data.dataset import Dataset
 from similarity.data.loaders.loader import DataLoader
-from rationale_alignment.parsing import AskUbuntuArguments
+from utils.parsing import AskUbuntuArguments
 from similarity.data.text import TextField
-from similarity.data.berttokenizer import BTTokenizer
+from utils.berttokenizer import BTTokenizer
 from similarity.data.utils import split_data, text_to_sentences
 
 
@@ -83,25 +83,25 @@ class AskUbuntuDataLoader(DataLoader):
                 if k in train_ids or k in dev_ids or k in test_ids
             }
             print(f"total small document count: {len(id_to_question)}")
-        if self.args.eval_only:
-            print("evaluating only, not using train set")
-            dev_available_ids: Set[str] = set.union(
-                set(dev_ids),
-                *[dev_id_mapping[document_id]["similar"] for document_id in dev_ids],
-            )
-            test_available_ids: Set[str] = set.union(
-                set(test_ids),
-                *[test_id_mapping[document_id]["similar"] for document_id in test_ids],
-            )
+        # if self.args.eval_only:
+        #     print("evaluating only, not using train set")
+        #     dev_available_ids: Set[str] = set.union(
+        #         set(dev_ids),
+        #         *[dev_id_mapping[document_id]["similar"] for document_id in dev_ids],
+        #     )
+        #     test_available_ids: Set[str] = set.union(
+        #         set(test_ids),
+        #         *[test_id_mapping[document_id]["similar"] for document_id in test_ids],
+        #     )
 
-            devtest_available_ids = list(dev_available_ids) + list(test_available_ids)
-            print(f"total document count: {len(devtest_available_ids)}")
-            id_to_question = {
-                k: v
-                for k, v in id_to_question.items()
-                if k in list(devtest_available_ids)
-            }
-            print(f"total document count: {len(id_to_question)}")
+        #     devtest_available_ids = list(dev_available_ids) + list(test_available_ids)
+        #     print(f"total document count: {len(devtest_available_ids)}")
+        #     id_to_question = {
+        #         k: v
+        #         for k, v in id_to_question.items()
+        #         if k in list(devtest_available_ids)
+        #     }
+        #     print(f"total document count: {len(id_to_question)}")
 
         # Get texts
         texts = [question["title"] for question in id_to_question.values()]

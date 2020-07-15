@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 from typing import Tuple
 
-from rationale_alignment.parsing import Arguments
-from rationale_alignment.utils import compute_cost, prod
+from utils.parsing import Arguments
+from utils.utils import compute_cost, prod
 
 
 def load_attention_layer(args: Arguments, bidirectional: bool) -> nn.Module:

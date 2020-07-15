@@ -7,7 +7,7 @@ import torch
 
 from classify.data.dataset import Dataset
 from classify.data.loaders.loader import DataLoader
-from rationale_alignment.parsing import SNLIArguments
+from utils.parsing import SNLIArguments
 from classify.data.text import TextField
 from classify.data.utils import split_data, text_to_sentences
 
@@ -65,9 +65,6 @@ class SNLIDataLoader(DataLoader):
         texts = list(id_to_text.values())
         self._text_field = TextField()
         self._text_field.build_vocab(texts)
-
-        # SNLI shouldn't use bert tokenizer, nor bert encoder
-        assert self.args.bert != True
 
         sampled = {k: id_to_text[k] for k in random.sample(list(id_to_text.keys()), 10)}
         print(sampled)

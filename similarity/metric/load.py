@@ -4,7 +4,7 @@ from similarity.metric import Metric
 from similarity.metric.dev import *
 from similarity.metric.loss import *
 from similarity.metric.train import *
-from rationale_alignment.parsing import Arguments
+from utils.parsing import Arguments
 
 
 def load_loss_and_metrics(

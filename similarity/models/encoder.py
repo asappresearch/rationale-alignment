@@ -8,21 +8,22 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rationale_alignment.parsing import Arguments
-from rationale_alignment.utils import compute_cost, prod, \
-    unpad_tensors
+from utils.parsing import Arguments
+from utils.utils import compute_cost, prod, unpad_tensors
 from similarity.models.attention import load_attention_layer
 
 
 class Embedder(nn.Module):
-    def __init__(self,
-                 args: Arguments,
-                 text_field,
-                 bidirectional: bool = True,
-                 layer_norm: bool = False,
-                 highway_bias: float = 0.0,
-                 rescale: bool = True,
-                 device: torch.device = torch.device('cpu')):
+    def __init__(
+        self,
+        args: Arguments,
+        text_field,
+        bidirectional: bool = True,
+        layer_norm: bool = False,
+        highway_bias: float = 0.0,
+        rescale: bool = True,
+        device: torch.device = torch.device("cpu"),
+    ):
         """Constructs an model to compute embeddings."""
         super(Embedder, self).__init__()
 
@@ -34,13 +35,14 @@ class Embedder(nn.Module):
 
         if self.args.bert:
             from transformers import AutoModel
+
             self.encoder = AutoModel.from_pretrained(args.bert_type)
-            print('finish loading bert encoder')
+            print("finish loading bert encoder")
             self.output_size = self.encoder.config.hidden_size
             self.bidirectional = False
             self.bert_bs = args.bert_batch_size
         else:
-            num_embeddings=len(text_field.vocabulary)
+            num_embeddings = len(text_field.vocabulary)
             print(f'Loading embeddings from "{args.embedding_path}"')
             embedding_matrix = text_field.load_embeddings(args.embedding_path)
 
@@ -57,7 +59,7 @@ class Embedder(nn.Module):
             self.embedding = nn.Embedding(
                 num_embeddings=self.num_embeddings,
                 embedding_dim=self.embedding_size,
-                padding_idx=self.pad_index
+                padding_idx=self.pad_index,
             )
             self.embedding.weight.data = embedding_matrix
             self.embedding.weight.requires_grad = False
@@ -75,13 +77,10 @@ class Embedder(nn.Module):
 
         # Move to device
         self.to(self.device)
-        
 
-
-    def rnn_encode(self,
-                data: torch.LongTensor,  # batch_size x seq_len
-                ) -> Tuple[List[Tuple[torch.FloatTensor, torch.FloatTensor]],
-                           List[Any]]:
+    def rnn_encode(
+        self, data: torch.LongTensor,  # batch_size x seq_len
+    ) -> Tuple[List[Tuple[torch.FloatTensor, torch.FloatTensor]], List[Any]]:
         """
         Aligns document pairs.
 
@@ -101,27 +100,34 @@ class Embedder(nn.Module):
         embedded = self.embedding(data)  # batch_size x seq_len x embedding_size
 
         # RNN encoder
-        h_seq, _ = self.encoder(embedded, mask_pad=(1-mask))  # seq_len x batch_size x 2*hidden_size
+        h_seq, _ = self.encoder(
+            embedded, mask_pad=(1 - mask)
+        )  # seq_len x batch_size x 2*hidden_size
         # output_states, c_states = sru(x)      # forward pass
         # output_states is (length, batch size, number of directions * hidden size)
         # c_states is (layers, batch size, number of directions * hidden size)
 
-        masked_h_seq = h_seq * mask.unsqueeze(dim=2) # seq_len x batch_size x 2*hidden_size
+        masked_h_seq = h_seq * mask.unsqueeze(
+            dim=2
+        )  # seq_len x batch_size x 2*hidden_size
 
         # Average pooling
-        masked_h = masked_h_seq.sum(dim=0)/mask.sum(dim=0).unsqueeze(dim=1) # batch_size x 2*hidden_size
-        
-        masked_h_seq = masked_h_seq.transpose(0,1)
+        masked_h = masked_h_seq.sum(dim=0) / mask.sum(dim=0).unsqueeze(
+            dim=1
+        )  # batch_size x 2*hidden_size
+
+        masked_h_seq = masked_h_seq.transpose(0, 1)
         # return masked_h, masked_h_seq
         return masked_h, None
 
-
-    def bert_encode(self,
-                data: torch.LongTensor,  # batch_size x seq_len
-                token_type_ids: Optional[torch.Tensor] = None,
-                attention_mask: Optional[torch.Tensor] = None,
-                position_ids: Optional[torch.Tensor] = None,
-                head_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def bert_encode(
+        self,
+        data: torch.LongTensor,  # batch_size x seq_len
+        token_type_ids: Optional[torch.Tensor] = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.Tensor] = None,
+        head_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         """
         Uses an RNN and self-attention to encode a batch of sequences of word embeddings.
         :param batch: A FloatTensor of shape `(sequence_length, batch_size, embedding_size)` containing embedded text.
@@ -141,17 +147,16 @@ class Embedder(nn.Module):
 
         attention_mask = attention_mask.to(self.device)
         outputs = self.encoder(data, attention_mask=attention_mask)
-        if not 'distil' in self.args.bert_type:
+        if not "distil" in self.args.bert_type:
             masked_h_seq = outputs[0]
             masked_h = outputs[1]
         else:
             masked_h = outputs[0]
         return masked_h, None
 
-    def forward(self,
-                data: torch.LongTensor,  # batch_size x seq_len
-                ) -> Tuple[List[Tuple[torch.FloatTensor, torch.FloatTensor]],
-                           List[Any]]:
+    def forward(
+        self, data: torch.LongTensor,  # batch_size x seq_len
+    ) -> Tuple[List[Tuple[torch.FloatTensor, torch.FloatTensor]], List[Any]]:
         if self.args.bert:
             if len(data) > self.bert_bs:
                 encodings = []

@@ -8,8 +8,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rationale_alignment.parsing import Arguments
-from rationale_alignment.utils import compute_cost, prod, unpad_tensors
+from utils.parsing import Arguments
+from utils.utils import compute_cost, prod, unpad_tensors
 from similarity.models.attention import load_attention_layer
 from similarity.models.encoder import Embedder
 
@@ -68,7 +68,6 @@ class AlignmentModel(nn.Module):
                 torch.index_select(encoded, 0, row_indices),
                 torch.index_select(encoded, 0, column_indices),
             )  # (n/m)x 2*hidden_size
-
 
             # Get sizes
             n, m = len(row_vecs), len(column_vecs)

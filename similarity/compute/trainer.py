@@ -12,7 +12,7 @@ from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 
 from similarity.data import Sampler
 from similarity.metric import Metric
-from rationale_alignment.utils import prod, save_model, NoamLR
+from utils.utils import prod, save_model, NoamLR
 
 
 class AlignmentTrainer:

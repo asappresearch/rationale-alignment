@@ -8,8 +8,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rationale_alignment.parsing import Arguments
-from rationale_alignment.utils import compute_cost, prod, unpad_tensors, feed_forward
+from utils.parsing import Arguments
+from utils.utils import compute_cost, prod, unpad_tensors, feed_forward
 from classify.models.attention import load_attention_layer, SparsemaxFunction
 from classify.models.encoder import Embedder
 
@@ -77,7 +77,7 @@ class AlignmentModel(nn.Module):
         if self.domain == "snli":
             self.out = nn.Linear(cls_input, 3)
             self.word_to_word = True
-        if self.domain == "eraser":
+        if self.domain == "multirc":
             self.out = nn.Linear(cls_input, 2)
 
         # This is a special model for SNLI, where the logits is (pos_cost, neg_cost, bias)
@@ -170,7 +170,7 @@ class AlignmentModel(nn.Module):
         )
         batch_cost += self.args.shiftcost
 
-        if self.args.alignment == "align_atten":
+        if self.args.alignment == "sinkhorn":
             costs = [
                 batch_cost[i, :n, :m] for i, (n, m) in enumerate(zip(n_list, m_list))
             ]
@@ -213,7 +213,7 @@ class AlignmentModel(nn.Module):
                         self.device
                     )
                 elif self.args.ratio_threshold:
-                    
+
                     threshold_adjusted = b.sort()[0][int(b.shape[0] * threshold) - 1]
                     alignments = alignments * (
                         alignments >= threshold_adjusted
@@ -323,7 +323,6 @@ class AlignmentModel(nn.Module):
             column_alignments = alignments.transpose(1, 2)
             row_alignments = alignments
 
-
         # weighted sum
         attended_row = column_alignments.contiguous().bmm(
             rows
@@ -387,7 +386,7 @@ class AlignmentModel(nn.Module):
 
         # Re-normalize alignment probabilities to one
         if (
-            self.args.alignment in ["attention", "sinkhorn", "align_atten"]
+            self.args.alignment in ["attention", "sinkhorn"]
             and not self.args.optional_alignment
         ):
             alignments = [

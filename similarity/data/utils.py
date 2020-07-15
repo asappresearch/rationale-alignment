@@ -2,7 +2,6 @@ import random
 from typing import Any, List, Optional, Tuple
 
 
-# from rationale_alignment.data.phraze_tokenizer import phrase_tokenizer
 
 sentence_tokenizer = None
 

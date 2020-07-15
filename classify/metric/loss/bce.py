@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from classify.metric.abstract import AlignmentMetric
 from classify.metric.abstract import Metric
 
-from rationale_alignment.utils import prod
+from utils.utils import prod
 
 
 class BinaryCrossEntropyLoss(Metric):
