@@ -137,12 +137,6 @@ class Embedder(nn.Module):
         # output_states is (length, batch size, number of directions * hidden size)
         # c_states is (layers, batch size, number of directions * hidden size)
 
-        if self.args.hidden_norm:
-            h_seq = F.layer_norm(
-                h_seq.transpose(0, 1), h_seq.transpose(0, 1).size()[-2:]
-            ).transpose(0, 1)
-            # data = self.hiddennorm(data)
-
         h_seq = h_seq.transpose(0, 1)  # batch_size x seq_len x 2*hidden_size
         mask = mask.transpose(0, 1)
 
